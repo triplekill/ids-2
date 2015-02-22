@@ -7,6 +7,9 @@ import org.jnetpcap.Pcap;
 import org.jnetpcap.PcapIf;  
 import org.jnetpcap.packet.PcapPacket;  
 import org.jnetpcap.packet.PcapPacketHandler; 
+import org.jnetpcap.packet.format.FormatUtils;
+import org.jnetpcap.protocol.network.Ip4;
+import org.jnetpcap.protocol.tcpip.Tcp;
 
 /**
  *
@@ -71,7 +74,7 @@ public class Ids {
                 System.out.printf("#%d: %s [%s]\n", i++, device.getName(), description);  
             }  
       
-            PcapIf device = alldevs.get(1); // We know we have atleast 1 device   (parametr changed from 0 to 1)
+            PcapIf device = alldevs.get(1); // We know we have atleast 1 device   (parameter changed from 0 to 1)
             System.out  
                 .printf("\nChoosing '%s' on your behalf:\n",  
                     (device.getDescription() != null) ? device.getDescription()  
@@ -96,19 +99,28 @@ public class Ids {
              * Third we create a packet handler which will receive packets from the 
              * libpcap loop. 
              **************************************************************************/  
-            PcapPacketHandler<String> jpacketHandler = new PcapPacketHandler<String>() {  
-      
+            PcapPacketHandler<String> jpacketHandler = new PcapPacketHandler<String>() {                 
+                final Tcp tcp=new Tcp();
+                final Ip4 ip = new Ip4(); 
+
                 public void nextPacket(PcapPacket packet, String user) {  
-      
-                    System.out.printf("Received packet at %s caplen=%-4d len=%-4d %s\n",  
+                    final Tcp tcp=new Tcp();
+                        if(packet.hasHeader(tcp)){
+                        if(packet.hasHeader(ip)){
+
+                        packet.getHeader(tcp);
+                        System.out.printf("Received packet at %s caplen=%-4d len=%-4d %s %s\n",  
                         new Date(packet.getCaptureHeader().timestampInMillis()),   
                         packet.getCaptureHeader().caplen(),  // Length actually captured  
                         packet.getCaptureHeader().wirelen(), // Original length   
-                        user                                 // User supplied object  
+                        user,FormatUtils.ip(ip.source())                              // User supplied object  
                         );  
-                }  
-            };  
-      
+                        //JBuffer buffer = packet;
+                        //int size=packet.size();
+                        byte[] arr=packet.getByteArray(0, packet.size());
+                    }}}
+
+            }; 
             /*************************************************************************** 
              * Fourth we enter the loop and tell it to capture 10 packets. The loop 
              * method does a mapping of pcap.datalink() DLT value to JProtocol ID, which 
